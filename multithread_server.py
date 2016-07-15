@@ -19,37 +19,45 @@ def update_coor(angles,coordinate):
     wn = turtle.Screen()      # Creates a playground for turtles
     squirtle = turtle.Turtle()    # Create a turtle, assign to alex
     squirtle.speed(10)
+    squirtle.pensize(4)
 
     while 1:
+        nb_eq = 0
         A = np.zeros(shape=(4,2))
         y = np.zeros(shape=(4,1))
-        if angles != old_angles:
-            if not math.isnan(angles[0]):
-                B = np.array([[1, -math.tan(angles[0])]])
-                z = np.array([[0]])
-                A[0] = B
-                y[0] = z
-            if not math.isnan(angles[1]):
-                B = np.array([[math.tan(angles[1]), 1]])
-                z = np.array([[math.tan(angles[1])*width]])
-                A[1] = B
-                y[1] = z
-            if not math.isnan(angles[2]):
-                B = np.array([[math.tan(angles[2]), 1]])
-                z = np.array([[height]])
-                A[2] = B
-                y[2] = z
-            if not math.isnan(angles[3]):
-                B = np.array([[-1, -math.tan(angles[3])]])
-                z = np.array([[math.tan(angles[3])*height-width]])
-                A[3] = B
-                y[3] = z
-            B = np.linalg.lstsq(A,y)
-            coordinate = (B[0][0],B[0][1])
-            squirtle.goto(coordinate[0][0]*3,coordinate[1][0]*3)
-            #print coordinate[0][0],coordinate[1][0]
-            #print A,y
-        #old_angles = angles
+        if not math.isnan(angles[0]):
+            B = np.array([[1, -math.tan(angles[0])]])
+            z = np.array([[0]])
+            A[0] = B
+            y[0] = z
+            nb_eq += 1
+        if not math.isnan(angles[1]):
+            B = np.array([[math.tan(angles[1]), 1]])
+            z = np.array([[math.tan(angles[1])*width]])
+            A[1] = B
+            y[1] = z
+            nb_eq += 1
+        if not math.isnan(angles[2]):
+            B = np.array([[math.tan(angles[2]), 1]])
+            z = np.array([[height]])
+            A[2] = B
+            y[2] = z
+            nb_eq += 1
+        if not math.isnan(angles[3]):
+            B = np.array([[-1, -math.tan(angles[3])]])
+            z = np.array([[math.tan(angles[3])*height-width]])
+            A[3] = B
+            y[3] = z
+            nb_eq += 1
+        #print angles
+        #print nb_eq
+        C = np.linalg.lstsq(A,y)
+        coordinate = (C[0][0],C[0][1])
+        if nb_eq < 2:
+            squirtle.penup()
+        else:
+            squirtle.goto((coordinate[0][0]-50)*5,(coordinate[1][0]-50)*5)
+            squirtle.pendown()
         time.sleep(0.01)
 
 
@@ -70,8 +78,9 @@ class ClientThread(threading.Thread):
         try:
             clientsock.send("\nWelcome to the server\n\n")
             data = clientsock.recv(2048)
-            print ip, data
+            #print data
             if ip == '169.254.155.157':
+                
                 angles[0] = float(data)/180*math.pi
             elif ip == '169.254.70.47':
                 angles[1] = float(data)/180*math.pi
