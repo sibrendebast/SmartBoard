@@ -48,19 +48,29 @@ for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=
     im2, contours, hierarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 ##    cv2.drawContours(image, contours, -1, (0,0,255), -1)
 
+    theta = float('nan')
+    
     try:
         cnt = contours[0]
         (x,y),radius = cv2.minEnclosingCircle(cnt)
         center = (int(x),int(y))
         theta = x/480*FOV +14.0
-        368
-        print  theta
-        send_data(str(theta))
-    ##        print center
         radius = int(radius)
         image = cv2.circle(image,center,radius,(0,255,0),2)
     except:
         pass
+    print  theta
+##        print 'wefwef'
+##        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+##        print 'ok'
+##        s.connect((TCP_IP, TCP_PORT))
+##        s.send(str(theta))
+##        print 'send to ' + TCP_IP
+##        s.close()
+    send_data(str(theta))
+##        print center
+    
+    
 	
     
     #cv2.imshow('mask',mask)
