@@ -70,6 +70,7 @@ class ClientThread(threading.Thread):
         try:
             clientsock.send("\nWelcome to the server\n\n")
             data = clientsock.recv(2048)
+            print ip, data
             if ip == '169.254.155.157':
                 angles[0] = float(data)/180*math.pi
             elif ip == '169.254.70.47':
