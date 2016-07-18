@@ -14,10 +14,12 @@ coordinate = (float('nan'),float('nan'))
 
 def update_coor(angles,coordinate):
     old_angles = [0,0,0,0]
-    width = 100;
-    height = 100;
+    width = 395;
+    height = 280;
     wn = turtle.Screen()      # Creates a playground for turtles
     squirtle = turtle.Turtle()    # Create a turtle, assign to alex
+    screen = squirtle.getscreen()
+    screen.screensize(width,height)
     squirtle.speed(10)
     squirtle.pensize(4)
 
@@ -49,6 +51,10 @@ def update_coor(angles,coordinate):
             A[3] = B
             y[3] = z
             nb_eq += 1
+##        if not math.isnan(angles[0]) and not math.isnan(angles[1]):
+##            x = width/(1+math.tan(angles[1])/math.tan(angles[0]))
+##            y = x/math.tan(angles[0])
+##            coordinate = (x,y)
         #print angles
         #print nb_eq
         C = np.linalg.lstsq(A,y)
@@ -56,7 +62,7 @@ def update_coor(angles,coordinate):
         if nb_eq < 2:
             squirtle.penup()
         else:
-            squirtle.goto((coordinate[0][0]-50)*5,(coordinate[1][0]-50)*5)
+            squirtle.goto(coordinate[0][0]-width/2,height/2-coordinate[1][0])
             squirtle.pendown()
         time.sleep(0.01)
 
@@ -80,10 +86,10 @@ class ClientThread(threading.Thread):
             data = clientsock.recv(2048)
             #print data
             if ip == '169.254.155.157':
-                
-                angles[0] = float(data)/180*math.pi
-            elif ip == '169.254.70.47':
                 angles[1] = float(data)/180*math.pi
+            elif ip == '169.254.70.47':
+                angles[0] = (float(data))/180*math.pi
+            
         except:
             pass
         

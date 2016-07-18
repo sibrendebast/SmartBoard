@@ -14,6 +14,9 @@ TCP_IP = '169.254.155.157'
 TCP_PORT = 12345
 BUFFER_SIZE = 1024
 
+WIDTH = 1920
+HEIGHT = 208
+
 def send_data(message):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
@@ -22,9 +25,9 @@ def send_data(message):
 
 #initialize the camera and grab a reference to the ram camera capture
 camera = PiCamera()
-camera.resolution = (480,368)
+camera.resolution = (WIDTH,HEIGHT)
 camera.framerate = 32
-rawCapture = PiRGBArray(camera, size=(480,368))
+rawCapture = PiRGBArray(camera, size=(WIDTH,HEIGHT))
 
 # allow the camera to warmup
 time.sleep(0.1)
@@ -39,9 +42,9 @@ upperIR = np.array([255,255,255])
 for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=True):
     image = frame.array
     #crop image
-    image = image[175:190, 0:480]
+    image = image[150:200, 0:WIDTH]
     #flip the image
-    image = cv2.flip(image,0)
+    #image = cv2.flip(image,0)
 
     
 
@@ -56,9 +59,10 @@ for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=
         cnt = contours[0]
         (x,y),radius = cv2.minEnclosingCircle(cnt)
         center = (int(x),int(y))
-        theta = x/480*FOV +14.0
+        theta = 148*x/WIDTH-26.245
+        #print x,theta
         radius = int(radius)
-        image = cv2.circle(image,center,radius,(0,255,0),2)
+        #image = cv2.circle(image,center,radius,(0,255,0),2)
 ##        low_line =  int(y)-20
 ##        high_line = int(y)+20
     except:
