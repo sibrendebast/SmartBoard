@@ -19,7 +19,7 @@ def update_coor(angles,coordinate):
     wn = turtle.Screen()      # Creates a playground for turtles
     squirtle = turtle.Turtle()    # Create a turtle, assign to alex
     screen = squirtle.getscreen()
-    screen.screensize(width,height)
+    screen.screensize(width/2,height/2)
     squirtle.speed(10)
     squirtle.pensize(4)
 
