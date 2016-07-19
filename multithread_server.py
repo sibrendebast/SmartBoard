@@ -61,7 +61,7 @@ def update_coor(angles,coordinate):
         #print nb_eq
         C = np.linalg.lstsq(A,y)
         coordinate = (C[0][0],C[0][1])
-        if nb_eq < 2:
+        if nb_eq < 3:
             squirtle.penup()
         else:
             squirtle.goto(coordinate[0][0]-width/2,height/2-coordinate[1][0])
@@ -95,6 +95,9 @@ class ServerThread(threading.Thread):
                 elif ip == '169.254.70.47':
                     #print ip, data
                     angles[0] = (float(data))/180*math.pi
+                elif ip == '169.254.126.138':
+                    #print ip, data
+                    angles[2] = (float(data))/180*math.pi
                 
             except:
                 break

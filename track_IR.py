@@ -87,11 +87,14 @@ for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=
         M = cv2.moments(contours[0])
         x = (M['m10']/M['m00'])
         theta = 148*x/WIDTH-26.245
+        if theta < -10  or theta > 100:
+            theta = float('nan')
     except:
         pass
     
     send_data(str(theta))
-    print  theta
+    #print  theta
+    #cv2.imshow('dokljshfj',image)
 
     key = cv2.waitKey(1) & 0xFF
     rawCapture.truncate(0)
