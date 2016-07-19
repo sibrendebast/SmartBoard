@@ -6,7 +6,15 @@ def send_data(message):
     BUFFER_SIZE = 1024
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((TCP_IP, TCP_PORT))
-    s.send(message)
+    while True:
+        try:
+            print s.recv(1024)
+            s.send(message)
+        except:
+            break
     s.close()
 
 
+
+
+send_data('80')
