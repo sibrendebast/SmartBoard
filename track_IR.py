@@ -16,6 +16,7 @@ BUFFER_SIZE = 1024
 
 WIDTH = 640
 HEIGHT = 480
+SIDEWIDTH = 50
 
 global message
 message = 'nan'
@@ -74,27 +75,32 @@ def send_data(message):
 
 #####      Capture frames from the camera        #####
 for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=True):
-    image = frame.array
-    image = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
-    image = image[260:265, 0:WIDTH]
-
-    ret,thresh = cv2.threshold(image,170,255,0)
-    im, contours,hierarchy = cv2.findContours(thresh, 1, 2)
-       
-    theta = float('nan')
-
-    try:
-        M = cv2.moments(contours[0])
-        x = (M['m10']/M['m00'])
-        theta = 148*x/WIDTH-26.245
-        if theta < -10  or theta > 100:
-            theta = float('nan')
-    except:
-        pass
+    image = frame.array[250:265, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
     
+    
+    if image.max() > 200:
+        x=np.unravel_index(image.argmax(),image.shape)[1]
+        theta = 148*(float(x)+SIDEWIDTH)/WIDTH-26.245
+        #print theta
+    else:
+        theta = float('nan')
+
     send_data(str(theta))
-    #print  theta
-    #cv2.imshow('dokljshfj',image)
+    
+##    ret,thresh = cv2.threshold(image,170,255,0)
+##    im, contours,hierarchy = cv2.findContours(thresh, 1, 2)
+##    try:
+##        M = cv2.moments(contours[0])
+##        x = (M['m10']/M['m00'])
+##        print x, np.unravel_index(image.argmax(),image.shape)[1]
+##        theta = 148*(x+SIDEWIDTH)/WIDTH-26.245
+##        
+##    except:
+##        pass
+    
+    
+##    print  theta
+##    cv2.imshow('dokljshfj',image)
 
     key = cv2.waitKey(1) & 0xFF
     rawCapture.truncate(0)

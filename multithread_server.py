@@ -21,9 +21,12 @@ def update_coor(angles,coordinate):
     wn = turtle.Screen()      # Creates a playground for turtles
     squirtle = turtle.Turtle()    # Create a turtle, assign to alex
     screen = squirtle.getscreen()
-    screen.screensize(width/2,height/2)
+    screen.bgcolor('#000000')
+    screen.setworldcoordinates(0,0,width,height)
     squirtle.speed(10)
     squirtle.pensize(4)
+    squirtle.pencolor('#00FF00')
+    
 
     while True:
         nb_eq = 0
@@ -61,10 +64,10 @@ def update_coor(angles,coordinate):
         #print nb_eq
         C = np.linalg.lstsq(A,y)
         coordinate = (C[0][0],C[0][1])
-        if nb_eq < 3:
+        if nb_eq < 2 and coordinate[0][0]< width and coordinate[1][0]<height:
             squirtle.penup()
         else:
-            squirtle.goto(coordinate[0][0]-width/2,height/2-coordinate[1][0])
+            squirtle.goto(coordinate[0][0],height-coordinate[1][0])
             squirtle.pendown()
         
         time.sleep(0.05)
