@@ -35,7 +35,7 @@ message = 'nan'
 
 #####   class to put video recording on seperate thread   #####
 class PiVideoStream:
-    def __init__(self, resolution=(640, 480), framerate=32):
+    def __init__(self, resolution=(WIDTH, HEIGHT), framerate=32):
         # initialize the camera and stream
         self.camera = PiCamera()
         self.camera.resolution = resolution
@@ -106,11 +106,14 @@ class PiVideoStream:
 
 def send_data(message):
     try:
+        #print 'begin sending'
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((TCP_IP, TCP_PORT))
         s.send(message)
+        #print message
         s.close()
     except:
+        #print 'sending failed'
         pass
 
 ##### Start client thread to send data to server #####
@@ -122,7 +125,7 @@ def send_data(message):
 
 #####      Capture frames from the camera        #####
 vs = PiVideoStream().start()
-time.sleep(2.0)
+time.sleep(0.5)
 
 while True:
     image = vs.read()
@@ -136,7 +139,7 @@ while True:
     else:
         theta = float('nan')
 
-    #send_data(str(theta))
+    send_data(str(theta))
     
 ##    ret,thresh = cv2.threshold(image,170,255,0)
 ##    im, contours,hierarchy = cv2.findContours(thresh, 1, 2)
@@ -150,8 +153,8 @@ while True:
 ##        pass
     
     
-    print  theta
-    cv2.imshow('dokljshfj',image)
+    #print  theta
+    #cv2.imshow('dokljshfj',image)
     time.sleep(0.02)
 
     key = cv2.waitKey(1) & 0xFF

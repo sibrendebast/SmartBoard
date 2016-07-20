@@ -89,17 +89,17 @@ class ServerThread(threading.Thread):
     def run(self):    
         while True:
             try:
-                clientsock.send('\nWelcome to the server\n')
+                #clientsock.send('\nWelcome to the server\n')
                 data = clientsock.recv(2048)
                 #print data
-                if ip == '169.254.155.157':
-                    print ip, data
+                if ip == '10.0.7.119':
+                    #print ip, data
                     angles[1] = float(data)/180*math.pi
-                elif ip == '169.254.70.47':
-                    print ip, data
+                elif ip == '10.0.7.198':
+                    #print ip, data
                     angles[0] = (float(data))/180*math.pi
                 elif ip == '169.254.126.138':
-                    print ip, data
+                    #print ip, data
                     angles[2] = (float(data))/180*math.pi
                 
             except:
@@ -108,7 +108,7 @@ class ServerThread(threading.Thread):
 
 
 
-host = ""
+host = "10.0.7.119"
 port = 12345
 
 tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
