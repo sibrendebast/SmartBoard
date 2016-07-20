@@ -10,7 +10,7 @@ import socket
                   
 #####                  CONSTANTS                #####
 FOV = 62
-TCP_IP = '169.254.155.157'
+TCP_IP = '10.0.7.119'
 TCP_PORT = 12345
 BUFFER_SIZE = 1024
 
