@@ -6,6 +6,7 @@ import cv2
 import threading
 import numpy as np
 import socket
+from threading import Thread
 
                   
 #####                  CONSTANTS                #####
@@ -16,20 +17,66 @@ BUFFER_SIZE = 1024
 
 WIDTH = 640
 HEIGHT = 480
-SIDEWIDTH = 50
+SIDEWIDTH = 0
 
 global message
 message = 'nan'
 
 ##### initialize the camera and grab a reference to the ram camera capture
-camera = PiCamera()
-camera.resolution = (WIDTH,HEIGHT)
-camera.framerate = 32
-rawCapture = PiRGBArray(camera, size=(WIDTH,HEIGHT))
-
+##camera = PiCamera()
+##camera.resolution = (WIDTH,HEIGHT)
+###camera.iso = 50
+##camera.framerate = 32
+##rawCapture = PiRGBArray(camera, size=(WIDTH,HEIGHT))
+##stream = camera.capture_continuous(rawCapture, format="bgr",use_video_port=True)
 
 #####        Allow the camera to warmup          #####
-time.sleep(0.1)
+##time.sleep(0.1)
+
+#####   class to put video recording on seperate thread   #####
+class PiVideoStream:
+    def __init__(self, resolution=(640, 480), framerate=32):
+        # initialize the camera and stream
+        self.camera = PiCamera()
+        self.camera.resolution = resolution
+        self.camera.framerate = framerate
+        self.rawCapture = PiRGBArray(self.camera, size=resolution)
+        self.stream = self.camera.capture_continuous(self.rawCapture,
+                format="bgr", use_video_port=True)
+
+        # initialize the frame and the variable used to indicate
+        # if the thread should be stopped
+        self.frame = None
+        self.stopped = False
+
+    def start(self):
+        # start the thread to read frames from the video stream
+        Thread(target=self.update, args=()).start()
+        return self
+
+    def update(self):
+        # keep looping infinitely until the thread is stopped
+        for f in self.stream:
+            # grab the frame from the stream and clear the stream in
+            # preparation for the next frame
+            self.frame = f.array
+            self.rawCapture.truncate(0)
+
+            # if the thread indicator variable is set, stop the thread
+            # and resource camera resources
+            if self.stopped:
+                self.stream.close()
+                self.rawCapture.close()
+                self.camera.close()
+                return
+            
+    def read(self):
+	# return the frame most recently read
+	return self.frame
+ 
+    def stop(self):
+	# indicate that the thread should be stopped
+	self.stopped = True
 
 #####     Client Class to send out the data      #####
 ##class ClientThread(threading.Thread):
@@ -74,8 +121,12 @@ def send_data(message):
 
 
 #####      Capture frames from the camera        #####
-for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=True):
-    image = frame.array[250:265, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+vs = PiVideoStream().start()
+time.sleep(2.0)
+
+while True:
+    image = vs.read()
+    image = image[250:265, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
     
     
     if image.max() > 200:
@@ -85,7 +136,7 @@ for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=
     else:
         theta = float('nan')
 
-    send_data(str(theta))
+    #send_data(str(theta))
     
 ##    ret,thresh = cv2.threshold(image,170,255,0)
 ##    im, contours,hierarchy = cv2.findContours(thresh, 1, 2)
@@ -99,17 +150,18 @@ for frame in camera.capture_continuous(rawCapture, format='bgr', use_video_port=
 ##        pass
     
     
-##    print  theta
-##    cv2.imshow('dokljshfj',image)
+    print  theta
+    cv2.imshow('dokljshfj',image)
+    time.sleep(0.02)
 
     key = cv2.waitKey(1) & 0xFF
-    rawCapture.truncate(0)
     if key == ord('q'):
         break
 
 
-for t in threads:
-        t.join()
+cv2.destroyAllWindows()
+vs.stop()
+
 
 
 
