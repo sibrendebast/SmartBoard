@@ -98,7 +98,7 @@ class ServerThread(threading.Thread):
                 elif ip == '10.0.7.198':
                     #print ip, data
                     angles[0] = (float(data))/180*math.pi
-                elif ip == '169.254.126.138':
+                elif ip == '10.0.7.197':
                     #print ip, data
                     angles[2] = (float(data))/180*math.pi
                 

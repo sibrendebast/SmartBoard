@@ -17,7 +17,7 @@ BUFFER_SIZE = 1024
 
 WIDTH = 640
 HEIGHT = 480
-SIDEWIDTH = 0
+SIDEWIDTH = 50
 
 global message
 message = 'nan'
@@ -139,21 +139,20 @@ while True:
     else:
         theta = float('nan')
 
-    send_data(str(theta))
     
 ##    ret,thresh = cv2.threshold(image,170,255,0)
 ##    im, contours,hierarchy = cv2.findContours(thresh, 1, 2)
 ##    try:
 ##        M = cv2.moments(contours[0])
 ##        x = (M['m10']/M['m00'])
-##        print x, np.unravel_index(image.argmax(),image.shape)[1]
+##        #print x, np.unravel_index(image.argmax(),image.shape)[1]
 ##        theta = 148*(x+SIDEWIDTH)/WIDTH-26.245
-##        
 ##    except:
+##        theta = float('nan')
 ##        pass
-    
-    
-    #print  theta
+
+    send_data(str(theta))
+    print  theta
     #cv2.imshow('dokljshfj',image)
     time.sleep(0.02)
 
