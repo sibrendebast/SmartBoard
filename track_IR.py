@@ -17,20 +17,20 @@ BUFFER_SIZE = 1024
 
 WIDTH = 640
 HEIGHT = 480
-SIDEWIDTH = 50
+SIDEWIDTH = 100
 
 global message
 message = 'nan'
 
-##### initialize the camera and grab a reference to the ram camera capture
+####### initialize the camera and grab a reference to the ram camera capture
 ##camera = PiCamera()
 ##camera.resolution = (WIDTH,HEIGHT)
 ###camera.iso = 50
 ##camera.framerate = 32
 ##rawCapture = PiRGBArray(camera, size=(WIDTH,HEIGHT))
 ##stream = camera.capture_continuous(rawCapture, format="bgr",use_video_port=True)
-
-#####        Allow the camera to warmup          #####
+##
+#######        Allow the camera to warmup          #####
 ##time.sleep(0.1)
 
 #####   class to put video recording on seperate thread   #####
@@ -152,7 +152,7 @@ while True:
 ##        pass
 
     send_data(str(theta))
-    print  theta
+    #print  theta
     #cv2.imshow('dokljshfj',image)
     time.sleep(0.02)
 

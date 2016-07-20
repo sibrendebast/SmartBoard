@@ -5,29 +5,28 @@ import math
 import numpy as np
 import time
 import turtle
+from graphics import *
 
 global angles
+global width
+global height
 global coordinate
+
+width = 395*2;
+height = 280*2;
+win = GraphWin('Location',width,height)
 
 
 angles = [float('nan'),float('nan'),float('nan'),float('nan')] #theta, phi, alpha, beta
-coordinate = (float('nan'),float('nan'))
+coordinate = (float('nan',float('nan'))
 
 
-def update_coor(angles,coordinate):
-    old_angles = [0,0,0,0]
-    width = 395;
-    height = 280;
-    wn = turtle.Screen()      # Creates a playground for turtles
-    squirtle = turtle.Turtle()    # Create a turtle, assign to alex
-    screen = squirtle.getscreen()
-    screen.bgcolor('#000000')
-    screen.setworldcoordinates(0,0,width,height)
-    squirtle.speed(10)
-    squirtle.pensize(4)
-    squirtle.pencolor('#00FF00')
+def update_coor(angles,width,height,win):
     
+    coordinate = Point(0,0)
+    old_coor = Point(0,0)
 
+    
     while True:
         nb_eq = 0
         A = np.zeros(shape=(4,2))
@@ -56,21 +55,17 @@ def update_coor(angles,coordinate):
             A[3] = B
             y[3] = z
             nb_eq += 1
-##        if not math.isnan(angles[0]) and not math.isnan(angles[1]):
-##            x = width/(1+math.tan(angles[1])/math.tan(angles[0]))
-##            y = x/math.tan(angles[0])
-##            coordinate = (x,y)
-        #print angles
-        #print nb_eq
+
         C = np.linalg.lstsq(A,y)
-        coordinate = (C[0][0],C[0][1])
-        if nb_eq < 2 and coordinate[0][0]< width and coordinate[1][0]<height:
-            squirtle.penup()
-        else:
-            squirtle.goto(coordinate[0][0],height-coordinate[1][0])
-            squirtle.pendown()
         
-        time.sleep(0.05)
+        coordinate = Point(int(C[0][0][0]),int(C[0][1][0]))
+        line = Line(old_coor,coordinate)
+        line.draw(win)
+        #print coordinate            
+    
+        time.sleep(0.02)
+        
+        
 
 
                 
@@ -87,23 +82,23 @@ class ServerThread(threading.Thread):
 
 
     def run(self):    
-        while True:
-            try:
-                #clientsock.send('\nWelcome to the server\n')
-                data = clientsock.recv(2048)
-                #print data
-                if ip == '10.0.7.119':
-                    #print ip, data
-                    angles[1] = float(data)/180*math.pi
-                elif ip == '10.0.7.198':
-                    #print ip, data
-                    angles[0] = (float(data))/180*math.pi
-                elif ip == '10.0.7.197':
-                    #print ip, data
-                    angles[2] = (float(data))/180*math.pi
-                
-            except:
-                break
+        
+        try:
+            #clientsock.send('\nWelcome to the server\n')
+            data = clientsock.recv(2048)
+            #print data
+            if ip == '10.0.7.119':
+                #print ip, data,'\n'
+                angles[1] = float(data)/180*math.pi
+            elif ip == '10.0.7.198':
+                #print ip, data,'\n'
+                angles[0] = (float(data))/180*math.pi
+            elif ip == '10.0.7.197':
+                #print ip, data,'\n'
+                angles[2] = (float(data))/180*math.pi
+            
+        except:
+            pass
         
 
 
@@ -120,7 +115,7 @@ threads = []
 run_event = threading.Event()
 run_event.set()
 
-t = threading.Thread(target=update_coor, args=(angles,coordinate,))
+t = threading.Thread(target=update_coor, args=(angles,width,height,win,))
 threads.append(t)
 t.start()
 
@@ -140,3 +135,5 @@ while True:
 
 for t in threads:
     t.join()
+
+
