@@ -2,7 +2,6 @@
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
-import cv2
 import threading
 import numpy as np
 import socket
@@ -19,19 +18,8 @@ WIDTH = 640
 HEIGHT = 480
 SIDEWIDTH = 100
 
-global message
-message = 'nan'
-
-####### initialize the camera and grab a reference to the ram camera capture
-##camera = PiCamera()
-##camera.resolution = (WIDTH,HEIGHT)
-###camera.iso = 50
-##camera.framerate = 32
-##rawCapture = PiRGBArray(camera, size=(WIDTH,HEIGHT))
-##stream = camera.capture_continuous(rawCapture, format="bgr",use_video_port=True)
-##
-#######        Allow the camera to warmup          #####
-##time.sleep(0.1)
+global theta
+theta = float('nan')
 
 #####   class to put video recording on seperate thread   #####
 class PiVideoStream:
@@ -72,97 +60,75 @@ class PiVideoStream:
             
     def read(self):
 	# return the frame most recently read
-	return self.frame
- 
+        return self.frame
+
     def stop(self):
 	# indicate that the thread should be stopped
-	self.stopped = True
+        self.stopped = True
+
 
 #####     Client Class to send out the data      #####
-##class ClientThread(threading.Thread):
-##    
-##
-##    def __init__(self,ip,port,message):
-##        threading.Thread.__init__(self)
-##        self.ip = ip
-##        self.port = port
-##        self.socket = socket
-##
-##
-##
-##    def run(self):
-##        try:
-##            while True:
-##                try:
-##                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-##                    s.connect((TCP_IP, TCP_PORT))
-##                    while True:
-##                        #print s.recv(1024)
-##                        s.send(message)
-##                        time.sleep(0.033)
-##                    s.close()
-##                except:
-##                    pass
+class ClientThread(threading.Thread):
+    
 
-def send_data(message):
-    try:
-        #print 'begin sending'
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((TCP_IP, TCP_PORT))
-        s.send(message)
-        #print message
-        s.close()
-    except:
-        #print 'sending failed'
-        pass
+    def __init__(self,ip,port):
+        threading.Thread.__init__(self)
+        self.ip = ip
+        self.port = port
+        self.stopped = False
 
-##### Start client thread to send data to server #####
-##threads = []
-##client = ClientThread(TCP_IP,TCP_PORT,message)
-##client.start()
-##threads.append(client)
 
+    def run(self):
+        while not self.stopped:
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                #print 'connecting....'
+                s.connect((self.ip, self.port))
+                while not self.stopped:
+                        received = s.recv(128)
+                        #print received
+                        if received.split()[0] == 'request':
+                            #print received.split()[1]
+                            s.send(received.split()[1]+' '+str(theta))
+                s.close()
+            except:
+                print 'connection failed'
+                pass
+        
+
+    def stop(self):
+        self.stopped = True
+
+
+client = ClientThread('10.0.7.119',12345)
+client.start()
 
 #####      Capture frames from the camera        #####
 vs = PiVideoStream().start()
 time.sleep(0.5)
 
-while True:
-    image = vs.read()
-    image = image[250:265, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
-    
-    
-    if image.max() > 200:
-        x=np.unravel_index(image.argmax(),image.shape)[1]
-        theta = 148*(float(x)+SIDEWIDTH)/WIDTH-26.245
-        #print theta
-    else:
-        theta = float('nan')
+try:
+    while True:
+        image = vs.read()
+        image = image[250:265, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+        
+        
+        if image.max() > 200:
+            x=np.unravel_index(image.argmax(),image.shape)[1]
+            theta = 148*(float(x)+SIDEWIDTH)/WIDTH-26.245
+            #print theta
+        else:
+            theta = float('nan')
 
-    
-##    ret,thresh = cv2.threshold(image,170,255,0)
-##    im, contours,hierarchy = cv2.findContours(thresh, 1, 2)
-##    try:
-##        M = cv2.moments(contours[0])
-##        x = (M['m10']/M['m00'])
-##        #print x, np.unravel_index(image.argmax(),image.shape)[1]
-##        theta = 148*(x+SIDEWIDTH)/WIDTH-26.245
-##    except:
-##        theta = float('nan')
-##        pass
+        time.sleep(0.02)
 
-    send_data(str(theta))
-    #print  theta
-    #cv2.imshow('dokljshfj',image)
-    time.sleep(0.02)
-
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-        break
+       
+        
+except KeyboardInterrupt:
+    vs.stop()
+    client.stop()
 
 
-cv2.destroyAllWindows()
-vs.stop()
 
 
 
