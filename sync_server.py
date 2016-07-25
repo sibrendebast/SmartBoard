@@ -1,15 +1,33 @@
 import socket
 import threading
 import time
+import numpy as np
+import math
+import turtle
+from numpy import *
+from numpy.linalg import inv, det
+from numpy.random import randn
 
 global connections
 global angles
+global coordinate
+global width
+global heigth
+global refresh_interval
+
+refresh_interval = 0.01
+
+
+#         theta        phi          alpha        beta
+angles = [float('nan'),float('nan'),float('nan'),float('nan')]
+coordinate = (float('nan'),float('nan'))
+
+width = 1920#395*2
+height = 1080#280*2
+
 
 # A list containing all the active server connections
 connections = []
-#         theta        phi          alpha        beta
-angles = [float('nan'),float('nan'),float('nan'),float('nan')]
-
 
 #####    Class to hangle all the networking trafic
 class ServerThread(threading.Thread):
@@ -32,7 +50,7 @@ class ServerThread(threading.Thread):
     def send_request(self,request_num):
         self.socket.send('request '+str(request_num))
         answer = self.socket.recv(32)
-        angles[self.angle] = answer.split()[1]
+        angles[self.angle] = float(answer.split()[1])/180.0*math.pi
         #print angles[self.angle]
 
     # stop the thread and close the socket
@@ -66,7 +84,7 @@ class SyncThread(threading.Thread):
                     con.stop()
                     connections.remove(con)
             #sleep for a bit (also wait for al the responses)
-            time.sleep(0.033)
+            time.sleep(refresh_interval)
             self.request_number += 1
             
 
@@ -144,14 +162,54 @@ class CoordinateThread(threading.Thread):
             y[3] = z
             nb_eq += 1
         # if we don't have enough equitations, we can't solve it
-        if nb_eq < 2:
+        if nb_eq < 3:
             #set coordinates to nan
-            coor = (float('nan'),float('nan'))
+            coordinate = (float('nan'),float('nan'))
         else:
             # using least squares to solve the system
             C = np.linalg.lstsq(A,y)
-            coor = (C[0][0][0],C[0][1][0])
-        print coordinate
+            coordinate = (C[0][0][0],C[0][1][0])
+        return coordinate
+
+
+
+def kf_predict(X, P, A, Q, B, U):
+    X = dot(A,X) + dot(B,U)
+    P = dot(A, dot(P, A.T)) + Q
+    return (X,P)
+
+def kf_update(X, P, Y, H, R):
+    IM = dot(H,X)
+    IS = R + dot(H, dot(P, H.T))
+    K = dot(P, dot(H.T, inv(IS)))
+    X = X + dot(K, (Y-IM))
+    P = P - dot(K, dot(IS, K.T))
+    LH = gauss_pdf(Y, IM,IS)
+    return (X,P,K,IM,IS,LH)
+
+def gauss_pdf(X,M,S):
+    alpha = 0.999999999999
+    if M.shape[1]==1:
+        DX = X - tile(M, X.shape[1])
+        E = alpha * sum(DX.T * (dot(inv(S),DX)),axis = 0)
+        E = E + 0.5 * M.shape[0] * log(2*pi) + (1-alpha) * log (det(S))
+        P = exp(-E)
+    elif X.shape[1] == 1:
+        DX = tile(X, M.shape[1]) - M
+        E = alpha * sum(DX.T * (dot(inv(S),DX)),axis = 0)
+        E = E + 0.5 * M.shape[0] * log(2*pi) + (1-alpha) * log (det(S))
+        P = exp(-E)
+    else:
+        DX = X-M
+        E = alpha * dot(DX.T , dot(inv(S), DX))
+        E = E + 0.5 * M.shape[0] * log(2*pi) + (1-alpha) * log (det(S))
+        P = exp(-E)
+
+###############################################################################
+##########                                                         ############
+##########                            MAIN                         ############
+##########                                                         ############
+###############################################################################
 
 ### initiate connectionHandler
 connHandler = ConnectionHandler()
@@ -165,14 +223,65 @@ syncThread.start()
 coorCalculator = CoordinateThread()
 coorCalculator.start()
 
-### keep the main thread running until we want to stop all threads
+win = turtle.Screen()
+win.setup(width=1.0, height=1.0, startx=None, starty=None)
+squirtle = turtle.Turtle()
+#bulbasaur = turtle.Turtle()
+screen = squirtle.getscreen()
+screen.bgcolor('#000000')
+screen.setworldcoordinates(0,0,width,height)
+squirtle.speed(10)
+#bulbasaur.speed(10)
+squirtle.pensize(3)
+#bulbasaur.pensize(3)
+squirtle.pencolor('#0000FF')
+#bulbasaur.pencolor('#00FF00')
+
+######     initialize Kalman variables
+dt = refresh_interval
+
+# state vector
+X = array([[0.0], [0.0], [0.0], [0.0]])
+# covariance matrix
+p = 10
+P = diag((p, p, p, p))
+# state transition matrix
+A = array([[1, 0, dt, 0], [0, 1, 0, dt], [0, 0, 1, 0], [0, 0, 0, 1]])
+# process noise matrix
+Q = eye(X.shape[0])*0.5
+B = eye(X.shape[0])
+U = zeros((X.shape[0],1))
+
+Y = array([[0],[0]])
+H = array([[1,0,0,0],[0,1,0,0]])
+R = eye(Y.shape[0])*20
+
 while True:
     try:
-        time.sleep(0.01)
+        coordinate = coorCalculator.calc_coor()
+        #print coordinate
+        if not math.isnan(coordinate[0]):
+            Y = array([[coordinate[0]],[coordinate[1]]])
+            (X,P) = kf_predict(X,P,A,Q,B,U)
+            (X,P,K,IM,IS,LH) = kf_update(X, P, Y, H, R)
+            squirtle.goto((X[:2]).tolist()[0][0],height-(X[:2]).tolist()[1][0])
+            #bulbasaur.goto(coordinate[0], height-coordinate[1])
+            squirtle.pendown()
+            #bulbasaur.pendown()
+        else:
+            squirtle.penup()
+            #bulbasaur.penup()
+            x = np.matrix('0. 0. 0. 0.').T 
+            P = np.matrix(np.eye(4))*1000 # initial uncertainty
+            
+        time.sleep(refresh_interval)
     # if we get a keyboard interrupt, kill all the running threads.
     except KeyboardInterrupt:
+        win.bye()
         connHandler.stop()
         syncThread.stop()
         for conn in connections:
             conn.stop()
         raise
+##    except:
+##        print 'unknown error'

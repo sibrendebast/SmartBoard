@@ -14,9 +14,9 @@ TCP_IP = '10.0.7.119'
 TCP_PORT = 12345
 BUFFER_SIZE = 1024
 
-WIDTH = 640
-HEIGHT = 480
-SIDEWIDTH = 100
+WIDTH = 1200
+HEIGHT = 720
+SIDEWIDTH = WIDTH / 8
 
 global theta
 theta = float('nan')
@@ -111,7 +111,7 @@ time.sleep(0.5)
 try:
     while True:
         image = vs.read()
-        image = image[250:265, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+        image = image[340:380, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
         
         
         if image.max() > 220:
@@ -121,7 +121,7 @@ try:
             print theta
         else:
             theta = float('nan')
-
+        
         time.sleep(0.02)
 
        
