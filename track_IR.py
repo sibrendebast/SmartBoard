@@ -116,7 +116,7 @@ try:
         if image.max() > 220:
             x=np.unravel_index(image.argmax(),image.shape)[1]
             #theta = 148*(float(x)+SIDEWIDTH)/WIDTH-26.245
-            theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-16.642)
+            theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
             print theta
         else:
             theta = float('nan')
