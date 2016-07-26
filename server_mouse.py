@@ -8,6 +8,7 @@ from numpy import *
 from numpy.linalg import inv, det
 from numpy.random import randn
 import Tkinter as tk
+from pymouse import PyMouse
 
 
 
@@ -25,10 +26,8 @@ refresh_interval = 0.01
 angles = [float('nan'),float('nan'),float('nan'),float('nan')]
 coordinate = (float('nan'),float('nan'))
 
-root = tk.Tk()
-
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
+screen_width = 1920
+screen_height = 1080
 width = screen_width#395*2
 height = screen_height#280*2
 
@@ -230,19 +229,9 @@ syncThread.start()
 coorCalculator = CoordinateThread()
 coorCalculator.start()
 
-win = turtle.Screen()
-win.setup(width=1.0, height=1.0, startx=None, starty=None)
-squirtle = turtle.Turtle()
-bulbasaur = turtle.Turtle()
-screen = squirtle.getscreen()
-screen.bgcolor('#000000')
-screen.setworldcoordinates(0,0,width,height)
-squirtle.speed(10)
-bulbasaur.speed(10)
-squirtle.pensize(3)
-bulbasaur.pensize(3)
-squirtle.pencolor('#0000FF')
-bulbasaur.pencolor('#00FF00')
+### initialize the mouse controller
+mouse = PyMouse()
+
 
 ######     initialize Kalman variables
 dt = refresh_interval
@@ -261,7 +250,10 @@ U = zeros((X.shape[0],1))
 
 Y = array([[0],[0]])
 H = array([[1,0,0,0],[0,1,0,0]])
-R = eye(Y.shape[0])*5
+R = eye(Y.shape[0])*7
+
+# flag to keep the state of the mouse
+pressed = False
 
 while True:
     try:
@@ -271,20 +263,20 @@ while True:
             Y = array([[coordinate[0]],[coordinate[1]]])
             (X,P) = kf_predict(X,P,A,Q,B,U)
             (X,P,K,IM,IS,LH) = kf_update(X, P, Y, H, R)
-            squirtle.goto((X[:2]).tolist()[0][0],height-(X[:2]).tolist()[1][0])
-            #bulbasaur.goto(coordinate[0], height-coordinate[1])
-            squirtle.pendown()
-            bulbasaur.pendown()
+            # move and press the mouse
+            mouse.press((X[:2]).tolist()[0][0],(X[:2]).tolist()[1][0])
+            pressed = True
         else:
-            squirtle.penup()
-            bulbasaur.penup()
             x = np.matrix('0. 0. 0. 0.').T 
             P = np.matrix(np.eye(4))*1000 # initial uncertainty
+            # release the mouse
+            if pressed:
+                mouse.release((X[:2]).tolist()[0][0],(X[:2]).tolist()[1][0])
+                pressed = False
             
         time.sleep(refresh_interval)
     # if we get a keyboard interrupt, kill all the running threads.
     except KeyboardInterrupt:
-        win.bye()
         connHandler.stop()
         syncThread.stop()
         for conn in connections:
