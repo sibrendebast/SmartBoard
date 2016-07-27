@@ -3,12 +3,12 @@ import threading
 import time
 import numpy as np
 import math
-import turtle
 from numpy import *
 from numpy.linalg import inv, det
 from numpy.random import randn
-import Tkinter as tk
 from pymouse import PyMouse
+from scipy.optimize import fsolve
+import pygame
 
 
 
@@ -28,8 +28,8 @@ coordinate = (float('nan'),float('nan'))
 
 screen_width = 1920
 screen_height = 1080
-width = screen_width#395*2
-height = screen_height#280*2
+width = screen_width
+height = screen_height
 
 
 # A list containing all the active server connections
@@ -141,22 +141,22 @@ class CoordinateThread(threading.Thread):
         y = np.zeros(shape=(4,1))
         #check if theta is set
         if not math.isnan(angles[0]):
-            B = np.array([[1, -math.tan(angles[0])]])
-            z = np.array([[0]])
+            B = np.array([[1, -math.tan(angles[0]+delta_angles[0])]])
+            z = np.array([[delta_y[0]*math.tan(angles[0]+delta_angles[0]) + delta_x[0]]])
             A[0] = B
             y[0] = z
             nb_eq += 1
         #check if phi is set
         if not math.isnan(angles[1]):
-            B = np.array([[math.tan(angles[1]), 1]])
-            z = np.array([[math.tan(angles[1])*width]])
+            B = np.array([[math.tan(angles[1]+delta_angles[1]), 1]])
+            z = np.array([[math.tan(angles[1]+delta_angles[1])*(width+delta_x[1])-delta_y[1]]])
             A[1] = B
             y[1] = z
             nb_eq += 1
         #check if alpha is set
         if not math.isnan(angles[2]):
-            B = np.array([[math.tan(angles[2]), 1]])
-            z = np.array([[height]])
+            B = np.array([[math.tan(angles[2]+delta_angles[2]), 1]])
+            z = np.array([[height+delta_y[2]-delta_x[2]*math.tan(angles[2]+delta_angles[2])]])
             A[2] = B
             y[2] = z
             nb_eq += 1
@@ -177,8 +177,107 @@ class CoordinateThread(threading.Thread):
             coordinate = (C[0][0][0],C[0][1][0])
         return coordinate
 
+#######          calibration
+global delta_angles
+global delta_x
+global delta_y
+    
+delta_angles = [0,0,0,0]
+delta_x = [0,0,0,0]
+delta_y = [0,0,0,0]
 
+def calibrate():
+    pygame.init()
+    screen = pygame.display.set_mode((1920,1080),pygame.FULLSCREEN)
+    width, height = screen.get_size()
+    pygame.display.set_caption('Calibration')
+    pygame.mouse.set_visible(False)
 
+    color = (0,255,0)
+
+    calibration_angles = [[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]]
+    
+    for i in range(1,4):
+        screen.fill((0,0,0))
+        pygame.draw.circle(screen, color, (i*width/4,height/2), 5)
+        pygame.display.update()
+        while str(angles[0]) == 'nan' or str(angles[1]) == 'nan' or str(angles[2]) == 'nan':
+            try:
+                time.sleep(0.01)
+            except:
+                pygame.quit()
+                break
+        
+        while not str(angles[0]) == 'nan' and not str(angles[1]) == 'nan' and not str(angles[2]) == 'nan':
+            try:
+                calibration_angles[i-1] = angles[:]
+                time.sleep(0.1)
+            except:
+                pygame.quit()
+                break
+        
+                
+    print calibration_angles
+    pygame.quit()
+
+    # theta
+    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][0]
+    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][0]
+    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][0]
+
+    def equations_theta(p):
+        theta,x,y = p
+        return ( theta - math.atan((x1 + x)/(y1 + y)) + theta1, \
+                  x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
+                  y     - (x3 + x)/math.tan(theta3 + theta) + y3)
+
+    delta_angles[0],delta_x[0],delta_y[0]=fsolve(equations_theta, (0,0,0))[:]
+
+    # phi
+    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][1]
+    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][1]
+    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][1]
+
+    def equations_phi(p):
+        dtheta,dx,dy = p
+        return (  dtheta - math.atan((y1 + dy)/(width + dx - x1)) + theta1, \
+                  dx     - (y2 + dy)/math.tan(theta2 + dtheta) - x2 + width,  \
+                  dy     - (width - x3 + dx)*math.tan(theta3 + dtheta) + y3)
+     
+    delta_angles[1],delta_x[1],delta_y[1]=fsolve(equations_phi, (0,0,0))[:]
+
+    # alpha
+    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][2]
+    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][2]
+    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][2]
+
+    def equations_alpha(p):
+        dtheta,dx,dy = p
+        return ( dtheta - math.atan((height+ dy - y1)/(x1 + dx)) + theta1, \
+                  dx     - (height - y2 + dy)/math.tan(theta2 + dtheta) + x2,  \
+                  dy     - (x3 + dx)*math.tan(theta3 + dtheta) + y3)
+
+    delta_angles[2],delta_x[2],delta_y[2]=fsolve(equations_alpha, (0,50,50))[:]
+
+    # beta
+    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][3]
+    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][3]
+    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][3]
+
+    def equations_beta(p):
+        theta,x,y = p
+        return ( theta - math.atan((x1 + x)/(y1 + y)) + theta1, \
+                  x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
+                  y     - (x3 + x)/math.tan(theta3 + theta) + y3)
+
+    delta_angles[3],delta_x[3],delta_y[3]=fsolve(equations_beta, (0,0,0))[:]
+    
+    print delta_angles
+    print delta_x
+    print delta_y
+    
+
+##### Kalman Filter implementation #####
 def kf_predict(X, P, A, Q, B, U):
     X = dot(A,X) + dot(B,U)
     P = dot(A, dot(P, A.T)) + Q
@@ -225,6 +324,9 @@ connHandler.start()
 syncThread = SyncThread()
 syncThread.start()
 
+time.sleep(1)
+calibrate()
+
 ### initiate the calculation of the coordinates
 coorCalculator = CoordinateThread()
 coorCalculator.start()
@@ -255,10 +357,11 @@ R = eye(Y.shape[0])*7
 # flag to keep the state of the mouse
 pressed = False
 
+
 while True:
     try:
         coordinate = coorCalculator.calc_coor()
-        #print coordinate
+        #print angles[0]
         if not math.isnan(coordinate[0]):
             Y = array([[coordinate[0]],[coordinate[1]]])
             (X,P) = kf_predict(X,P,A,Q,B,U)

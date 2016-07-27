@@ -15,7 +15,7 @@ BUFFER_SIZE = 1024
 
 WIDTH = 1296
 HEIGHT = 736
-SIDEWIDTH = 0#WIDTH / 8
+SIDEWIDTH = WIDTH / 10
 
 global theta
 theta = float('nan')
@@ -117,7 +117,7 @@ try:
             x=np.unravel_index(image.argmax(),image.shape)[1]
             #theta = 148*(float(x)+SIDEWIDTH)/WIDTH-26.245
             theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
-            print theta
+            #print theta
         else:
             theta = float('nan')
         
