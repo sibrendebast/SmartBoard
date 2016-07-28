@@ -35,7 +35,7 @@ class ClientThread(threading.Thread):
         self.stopped = True
 
 
-client = ClientThread('10.0.7.119',12345)
+client = ClientThread('digitalboard1',12345)
 client.start()
 
 try:

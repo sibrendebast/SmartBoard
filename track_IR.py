@@ -9,13 +9,13 @@ from threading import Thread
 
                   
 #####                  CONSTANTS                #####
-TCP_IP = '10.0.7.119'
+TCP_IP = 'digitalboard1'
 TCP_PORT = 12345
 BUFFER_SIZE = 1024
 
 WIDTH = 1296
 HEIGHT = 736
-SIDEWIDTH = WIDTH / 10
+SIDEWIDTH = WIDTH / 8
 
 global theta
 theta = float('nan')

@@ -186,6 +186,13 @@ delta_angles = [0,0,0,0]
 delta_x = [0,0,0,0]
 delta_y = [0,0,0,0]
 
+delta_angles_list = [[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+delta_x_list = [[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+delta_y_list = [[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+
+nb_vert_pnts = 1
+nb_horz_pnts = 3 #HAS TO STAY 3!!!!
+
 def calibrate():
     pygame.init()
     screen = pygame.display.set_mode((1920,1080),pygame.FULLSCREEN)
@@ -193,88 +200,150 @@ def calibrate():
     pygame.display.set_caption('Calibration')
     pygame.mouse.set_visible(False)
 
-    color = (0,255,0)
+    green = (0,255,0)
+    red = (255,0,0)
+    white = (255,255,255)
 
     calibration_angles = [[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]]
+
     
-    for i in range(1,4):
-        screen.fill((0,0,0))
-        pygame.draw.circle(screen, color, (i*width/4,height/2), 5)
-        pygame.display.update()
-        while str(angles[0]) == 'nan' or str(angles[1]) == 'nan' or str(angles[2]) == 'nan':
-            try:
-                time.sleep(0.01)
-            except:
-                pygame.quit()
-                break
-        
-        while not str(angles[0]) == 'nan' and not str(angles[1]) == 'nan' and not str(angles[2]) == 'nan':
-            try:
-                calibration_angles[i-1] = angles[:]
-                time.sleep(0.1)
-            except:
-                pygame.quit()
-                break
-        
+    for j in range(1,nb_vert_pnts+1):
+        #print 'j', j
+        for i in range(1,(nb_horz_pnts+1)):
+            #print 'i', i
+            screen.fill((0,0,0))
+            pygame.draw.circle(screen, white, (i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)), 25)
+            pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1)-30,j*height/(nb_vert_pnts+1)),(i*width/(nb_horz_pnts+1)+30,j*height/(nb_vert_pnts+1))], 3)
+            pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)-30),(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)+30)], 3)
+            pygame.display.update()
+            # wait until there is a pen detected
+            while str(angles[0]) == 'nan' or str(angles[1]) == 'nan' or str(angles[2]) == 'nan':
+                try:
+                    time.sleep(0.05)
+                except:
+                    pygame.quit()
+                    raise
+
+            #wait until we have enough data points
+            
+            data = [[],[],[],[]]
+            while len(data[0]) < 40:
+                try:
+                    screen.fill((0,0,0))
+                    pygame.draw.circle(screen, white, (i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)), int(25-0.5*len(data[0])))
+                    pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1)-30,j*height/(nb_vert_pnts+1)),(i*width/(nb_horz_pnts+1)+30,j*height/(nb_vert_pnts+1))], 3)
+                    pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)-30),(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)+30)], 3)
+                    pygame.display.update()
+                    if (not str(angles[0]) == 'nan' and not str(angles[1]) == 'nan' and not str(angles[2]) == 'nan'):
+                        data[0].append(angles[0]) #theta
+                        data[1].append(angles[1]) #phi
+                        data[2].append(angles[2]) #alpha
+                        data[3].append(angles[3]) #beta
+                    time.sleep(0.05)
+                except:
+                    pygame.quit()
+                    raise
+
+            # wait until the pen is gone
+            while not(str(angles[0]) == 'nan' or str(angles[1]) == 'nan' or str(angles[2]) == 'nan'):
+                try:
+                    screen.fill((0,0,0))
+                    pygame.draw.lines(screen, green, False, [(i*width/(nb_horz_pnts+1)-30,j*height/(nb_vert_pnts+1)),(i*width/(nb_horz_pnts+1)+30,j*height/(nb_vert_pnts+1))], 3)
+                    pygame.draw.lines(screen, green, False, [(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)-30),(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)+30)], 3)
+                    pygame.display.update()
+                    time.sleep(0.05)
+                except:
+                    pygame.quit()
+                    raise
+            #print data
+            calibration_angles[i-1] = [sum(data[0])/len(data[0]),sum(data[1])/len(data[1]),sum(data[2])/len(data[2]),sum(data[3])/len(data[3])]
+            print calibration_angles[i-1]
                 
-    print calibration_angles
+        #print calibration_angles
+        
+
+        # theta
+        x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][0]
+        x2, y2, theta2 = 2*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[1][0]
+        x3, y3, theta3 = 3*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[2][0]
+
+        def equations_theta(p):
+            theta,x,y = p
+            return ( theta - math.atan2((x1 + x),(y1 + y)) + theta1, \
+                      x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
+                      y     - (x3 + x)/math.tan(theta3 + theta) + y3)
+
+        delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]=fsolve(equations_theta, (0,50,100))[:]
+        print delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]
+
+        # phi
+        x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][1]
+        x2, y2, theta2 = 2*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[1][1]
+        x3, y3, theta3 = 3*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[2][1]
+
+        def equations_phi(p):
+            dtheta,dx,dy = p
+            return (  dtheta - math.atan2((y1 + dy),(width + dx - x1)) + theta1, \
+                      dx     - (y2 + dy)/math.tan(theta2 + dtheta) - x2 + width,  \
+                      dy     - (width - x3 + dx)*math.tan(theta3 + dtheta) + y3)
+         
+        delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]=fsolve(equations_phi, (0,50,100))[:]
+        print delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]
+
+        # alpha
+        x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][2]
+        x2, y2, theta2 = 2*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[1][2]
+        x3, y3, theta3 = 3*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[2][2]
+
+        def equations_alpha(p):
+            dtheta,dx,dy = p
+            return ( dtheta - math.atan2((height+ dy - y1),(x1 + dx)) + theta1, \
+                      dx     - (height - y2 + dy)/math.tan(theta2 + dtheta) + x2,  \
+                      dy     - (x3 + dx)*math.tan(theta3 + dtheta) + y3)
+
+        delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]=fsolve(equations_alpha, (0,50,100))[:]
+        print delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]
+
+        # beta
+        x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][3]
+        x2, y2, theta2 = 2*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[1][3]
+        x3, y3, theta3 = 3*width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[2][3]
+
+        def equations_beta(p):
+            theta,x,y = p
+            return ( theta - math.atan2((x1 + x),(y1 + y)) + theta1, \
+                      x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
+                      y     - (x3 + x)/math.tan(theta3 + theta) + y3)
+
+        delta_angles_list[j-1][3],delta_x_list[j-1][3],delta_y_list[j-1][3]=fsolve(equations_beta, (0,0,0))[:]
+        print delta_angles_list[j-1][3],delta_x_list[j-1][3],delta_y_list[j-1][3]
+
+    for i in range(0,4):
+        som = 0
+        for j in range(0,nb_vert_pnts):
+            som += delta_angles_list[j][i]
+        delta_angles[i] = som/(j+1)
+
+    for i in range(0,4):
+        som = 0
+        for j in range(0,nb_vert_pnts):
+            som += delta_x_list[j][i]
+        delta_x[i] = som/(j+1)
+
+    for i in range(0,4):
+        som = 0
+        for j in range(0,nb_vert_pnts):
+            som += delta_y_list[j][i]
+        delta_y[i] = som/(j+1)
+    
     pygame.quit()
 
-    # theta
-    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][0]
-    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][0]
-    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][0]
-
-    def equations_theta(p):
-        theta,x,y = p
-        return ( theta - math.atan((x1 + x)/(y1 + y)) + theta1, \
-                  x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
-                  y     - (x3 + x)/math.tan(theta3 + theta) + y3)
-
-    delta_angles[0],delta_x[0],delta_y[0]=fsolve(equations_theta, (0,0,0))[:]
-
-    # phi
-    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][1]
-    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][1]
-    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][1]
-
-    def equations_phi(p):
-        dtheta,dx,dy = p
-        return (  dtheta - math.atan((y1 + dy)/(width + dx - x1)) + theta1, \
-                  dx     - (y2 + dy)/math.tan(theta2 + dtheta) - x2 + width,  \
-                  dy     - (width - x3 + dx)*math.tan(theta3 + dtheta) + y3)
-     
-    delta_angles[1],delta_x[1],delta_y[1]=fsolve(equations_phi, (0,0,0))[:]
-
-    # alpha
-    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][2]
-    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][2]
-    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][2]
-
-    def equations_alpha(p):
-        dtheta,dx,dy = p
-        return ( dtheta - math.atan((height+ dy - y1)/(x1 + dx)) + theta1, \
-                  dx     - (height - y2 + dy)/math.tan(theta2 + dtheta) + x2,  \
-                  dy     - (x3 + dx)*math.tan(theta3 + dtheta) + y3)
-
-    delta_angles[2],delta_x[2],delta_y[2]=fsolve(equations_alpha, (0,50,50))[:]
-
-    # beta
-    x1, y1, theta1 =   width/4, height/2, calibration_angles[0][3]
-    x2, y2, theta2 = 2*width/4, height/2, calibration_angles[1][3]
-    x3, y3, theta3 = 3*width/4, height/2, calibration_angles[2][3]
-
-    def equations_beta(p):
-        theta,x,y = p
-        return ( theta - math.atan((x1 + x)/(y1 + y)) + theta1, \
-                  x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
-                  y     - (x3 + x)/math.tan(theta3 + theta) + y3)
-
-    delta_angles[3],delta_x[3],delta_y[3]=fsolve(equations_beta, (0,0,0))[:]
+    
     
     print delta_angles
     print delta_x
     print delta_y
+
     
 
 ##### Kalman Filter implementation #####
@@ -324,8 +393,15 @@ connHandler.start()
 syncThread = SyncThread()
 syncThread.start()
 
+### Wait for the data flow to start
 time.sleep(1)
+
+### Calibrate the system
 calibrate()
+
+##delta_angles = [-0.01489653883916651, 0.12564259946754294, 0.0718917376054, 0.0]
+##delta_x = [45.313111630000272, 35.352680874347136, 35.1306102681, 0.0]
+##delta_y =[85.720078716349605, 80.88786124506264, 105.569918538, 0.0]
 
 ### initiate the calculation of the coordinates
 coorCalculator = CoordinateThread()
@@ -367,6 +443,7 @@ while True:
             (X,P) = kf_predict(X,P,A,Q,B,U)
             (X,P,K,IM,IS,LH) = kf_update(X, P, Y, H, R)
             # move and press the mouse
+            #mouse.move((X[:2]).tolist()[0][0],(X[:2]).tolist()[1][0])
             mouse.press((X[:2]).tolist()[0][0],(X[:2]).tolist()[1][0])
             pressed = True
         else:
