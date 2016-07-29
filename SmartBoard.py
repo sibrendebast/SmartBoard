@@ -69,11 +69,17 @@ class ClientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.stopped = False
-        if ip == 'smartboard1.local':
+##        if ip == 'smartboard1.local':
+##            self.angle = 1
+##        elif ip == 'smartboard0.local':
+##            self.angle = 0
+##        elif ip == 'smartboard2.local':
+##            self.angle = 2
+        if ip == '10.0.7.119':
             self.angle = 1
-        elif ip == 'smartboard0.local':
+        elif ip == '10.0.7.198':
             self.angle = 0
-        elif ip == 'smartboard2.local':
+        elif ip == '10.0.7.197':
             self.angle = 2
         self.request = False
         self.request_num = 0
@@ -93,22 +99,16 @@ class ClientThread(threading.Thread):
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((self.ip, self.port))
                 while not self.stopped:
-                    #print 'running'
                     if self.request:
-                        #print 'request '+str(self.request_num)
                         s.send('request '+str(self.request_num))
-                        #print 'hallo'
                         answer = s.recv(32)
-                        #print 'answer',answer
-                        #print self.ip, answer
                         angles[self.angle] = float(answer.split()[1])/180.0*math.pi
-                        #print angles[self.angle]
                         self.request = False
-                #print 'closing connection'
+                    time.sleep(0.01)
                 s.close()
+                
             except:
                 ## wait some time before trying to reconnect (in case connection fails a lot)
-                #print 'connection failed'
                 time.sleep(0.1)
                 pass
         
@@ -152,7 +152,7 @@ class CoordinateThread(threading.Thread):
         threading.Thread.__init__(self)
         
     def calc_coor(self):
-        print angles
+        #print angles
         #initialize the needed variables
         nb_eq = 0
         A = np.zeros(shape=(4,2))
@@ -416,15 +416,18 @@ def gauss_pdf(X,M,S):
 
 
 ## Start the communication
-client0 = ClientThread('smartboard0.local',12345)
+#client0 = ClientThread('smartboard0.local',12345)
+client0 = ClientThread('10.0.7.198',12345)
 client0.start()
 connections.append(client0)
 
-client1 = ClientThread('smartboard1.local',12345)
+#client1 = ClientThread('smartboard1.local',12345)
+client1 = ClientThread('10.0.7.119',12345)
 client1.start()
 connections.append(client1)
 
-client2 = ClientThread('smartboard2.local',12345)
+#client2 = ClientThread('smartboard2.local',12345)
+client2 = ClientThread('10.0.7.197',12345)
 client2.start()
 connections.append(client2)
 
@@ -437,7 +440,7 @@ syncThread.start()
 time.sleep(1)
 
 ### Calibrate the system
-#calibrate()
+calibrate()
 
 ##delta_angles = [-0.01489653883916651, 0.12564259946754294, 0.0718917376054, 0.0]
 ##delta_x = [45.313111630000272, 35.352680874347136, 35.1306102681, 0.0]

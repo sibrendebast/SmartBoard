@@ -35,7 +35,7 @@ connections = []
 WIDTH = 1296
 HEIGHT = 736
 ## How much of the sides we don't need
-SIDEWIDTH = 200
+SIDEWIDTH = WIDTH/8
 
 ## variable to hold the angle at which the pen is located
 global theta
@@ -170,24 +170,24 @@ vs = PiVideoStream().start()
 ## Give the camera some time to start
 time.sleep(0.5)
 
-try:
-    while True:
-        image = vs.read()
-        ## crop the image to the needed size
-        image = image[300:400, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
-        
-        if image.max() > 230:
-            x=np.unravel_index(image.argmax(),image.shape)[1]
-            theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
-        else:
-            theta = float('nan')
-        #print theta
-        time.sleep(0.02)
+##try:
+while True:
+    image = vs.read()
+    ## crop the image to the needed size
+    image = image[350:400, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+    
+    if image.max() > 230:
+        x=np.unravel_index(image.argmax(),image.shape)[1]
+        theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
+    else:
+        theta = float('nan')
+    #print theta
+    time.sleep(0.03)
 
        
         
-except KeyboardInterrupt:
-    vs.stop()
-    connHandler.stop()    
-    for conn in connections:
-        conn.stop()
+##except KeyboardInterrupt:
+##    vs.stop()
+##    connHandler.stop()    
+##    for conn in connections:
+##        conn.stop()
