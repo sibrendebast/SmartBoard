@@ -1,3 +1,9 @@
+## Code to collect data from raspberry pis that measure the relative angle from
+## the camera of the raspberry pis qand an IR pen. This data is processed and
+## converted into coordinates. USing a calibration method, these coordinates
+## can be mapped on the screen of the computer running thid code. The code is
+## to make a TV screen a digital whiteboard.
+##
 ## Author: Sibren De Bast
 ## in assignment of Easics,
 ## July 2016
@@ -34,8 +40,10 @@ global heigth
 global refresh_interval
 
 ## the rate at which the information is updated
-refresh_interval = 0.01
+refresh_interval = 0.02
 
+width =  1920
+height = 1080
 
 #         theta        phi          alpha        beta
 angles = [float('nan'),float('nan'),float('nan'),float('nan')]
@@ -51,37 +59,62 @@ connections = []
 ##########                                                         ############
 ###############################################################################
 
-#####    Class to hangle all the networking trafic
-class ServerThread(threading.Thread):
+#####     Client Class to receive the data      #####
+class ClientThread(threading.Thread):
+    
 
-    # initialize the serverThread
-    def __init__(self,ip,port,socket):
+    def __init__(self,ip,port):
+        ## initialize the thread
         threading.Thread.__init__(self)
         self.ip = ip
         self.port = port
-        self.socket = socket
-        if ip == '10.0.7.119':
+        self.stopped = False
+        if ip == 'smartboard1.local':
             self.angle = 1
-        elif ip == '10.0.7.198':
+        elif ip == 'smartboard0.local':
             self.angle = 0
-        elif ip == '10.0.7.197':
+        elif ip == 'smartboard2.local':
             self.angle = 2
-                
+        self.request = False
+        self.request_num = 0
+
 
     # send a request for data and wait for answer
     def send_request(self,request_num):
-        self.socket.send('request '+str(request_num))
-        answer = self.socket.recv(32)
-        angles[self.angle] = float(answer.split()[1])/180.0*math.pi
-        #print angles[self.angle]
+        self.request_num = request_num
+        self.request = True
+        #print self.request_num
+        
 
-    # stop the thread and close the socket
+    def run(self):
+        while not self.stopped:
+            try:
+                ## connect to a remote host
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.connect((self.ip, self.port))
+                while not self.stopped:
+                    #print 'running'
+                    if self.request:
+                        #print 'request '+str(self.request_num)
+                        s.send('request '+str(self.request_num))
+                        #print 'hallo'
+                        answer = s.recv(32)
+                        #print 'answer',answer
+                        angles[self.angle] = float(answer.split()[1])/180.0*math.pi
+                        print angles[self.angle]
+                        self.request = False
+                #print 'closing connection'
+                s.close()
+            except:
+                ## wait some time before trying to reconnect (in case connection fails a lot)
+                #print 'connection failed'
+                time.sleep(0.1)
+                pass
+        
+
     def stop(self):
-        self.socket.close()
-
-    # return the IP address
-    def get_ip(self):
-        return self.ip
+        ## stop the thread
+        self.stopped = True
         
 #####    Class that handles all the synchronization
 class SyncThread(threading.Thread):
@@ -97,14 +130,9 @@ class SyncThread(threading.Thread):
         while self.running:
             #print self.request_number
             #loop over all open connections
-            for con in connections:
-                try:
-                    #request data from all open connections
-                    con.send_request(self.request_number)
-                except:
-                    print 'connection stopped',con.get_ip() 
-                    con.stop()
-                    connections.remove(con)
+            for con in connections:  
+                #request data from all open connections
+                con.send_request(self.request_number)
             #sleep for a bit (also wait for al the responses)
             time.sleep(refresh_interval)
             self.request_number += 1
@@ -114,35 +142,7 @@ class SyncThread(threading.Thread):
     def stop(self):
         self.running = False
 
-#####     Class that opens and closes TCP connections
-class ConnectionHandler(threading.Thread):
 
-    def __init__(self):
-        threading.Thread.__init__(self)
-        host = "10.0.7.119"
-        port = 12345
-        self.running = True
-        # initiate the TCP connection
-        self.tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.tcpsock.bind((host,port))
-
-    # thread keeps listening for incoming connections
-    def run(self):
-        while self.running:
-            # listen for incoming connection
-            print 'listening for connections'
-            self.tcpsock.listen(3)
-            (sock, (ip, port)) = self.tcpsock.accept()
-            print 'connection from '+str(ip)
-            # start serverthread to handle incoming connection
-            conn = ServerThread(ip, port, sock,)
-            conn.start()
-            connections.append(conn)
-
-    # set flag to stop the thread
-    def stop(self):
-        self.running = False
 
 ##### Class that calculatues the coordinate of the marker based on the given angles
 class CoordinateThread(threading.Thread):
@@ -411,9 +411,20 @@ def gauss_pdf(X,M,S):
 ##########                                                         ############
 ###############################################################################
 
-### initiate connectionHandler
-connHandler = ConnectionHandler()
-connHandler.start()
+
+## Start the communication
+client0 = ClientThread('smartboard0.local',12345)
+client0.start()
+connections.append(client0)
+
+client1 = ClientThread('smartboard1.local',12345)
+client1.start()
+connections.append(client1)
+
+client2 = ClientThread('smartboard2.local',12345)
+client2.start()
+connections.append(client2)
+
 
 ### initiate syncThread
 syncThread = SyncThread()
@@ -423,7 +434,7 @@ syncThread.start()
 time.sleep(1)
 
 ### Calibrate the system
-calibrate()
+#calibrate()
 
 ##delta_angles = [-0.01489653883916651, 0.12564259946754294, 0.0718917376054, 0.0]
 ##delta_x = [45.313111630000272, 35.352680874347136, 35.1306102681, 0.0]
@@ -486,7 +497,6 @@ while True:
         time.sleep(refresh_interval)
     ## if we get a keyboard interrupt, kill all the running threads.
     except KeyboardInterrupt:
-        connHandler.stop()
         syncThread.stop()
         for conn in connections:
             conn.stop()

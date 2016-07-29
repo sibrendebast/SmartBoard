@@ -28,15 +28,14 @@ from threading import Thread
 ##########                                                         ############
 ###############################################################################
 
-TCP_IP = 'digitalboard1'
-TCP_PORT = 12345
-BUFFER_SIZE = 1024
+global connections
+connections = []
 
 ## resolution of the camera
 WIDTH = 1296
 HEIGHT = 736
 ## How much of the sides we don't need
-SIDEWIDTH = WIDTH / 8
+SIDEWIDTH = 200
 
 ## variable to hold the angle at which the pen is located
 global theta
@@ -94,40 +93,66 @@ class PiVideoStream:
         self.stopped = True
 
 
-#####     Client Class to send out the data      #####
-class ClientThread(threading.Thread):
-    
+#####     Class that opens and closes TCP connections
+class ConnectionHandler(threading.Thread):
 
-    def __init__(self,ip,port):
-        ## initialize the thread
+    def __init__(self):
+        threading.Thread.__init__(self)
+        host = ""
+        port = 12345
+        self.running = True
+        # initiate the TCP connection
+        self.tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.tcpsock.bind((host,port))
+
+    # thread keeps listening for incoming connections
+    def run(self):
+        while self.running:
+            # listen for incoming connection
+            print 'listening for connections'
+            self.tcpsock.listen(3)
+            (sock, (ip, port)) = self.tcpsock.accept()
+            print 'connection from '+str(ip)
+            # start serverthread to handle incoming connection
+            conn = ServerThread(ip, port, sock,)
+            conn.start()
+            connections.append(conn)
+
+    # set flag to stop the thread
+    def stop(self):
+        self.running = False
+
+        
+#####    Class to handle all the networking trafic
+class ServerThread(threading.Thread):
+
+    # initialize the serverThread
+    def __init__(self,ip,port,socket):
         threading.Thread.__init__(self)
         self.ip = ip
         self.port = port
+        self.socket = socket
         self.stopped = False
-
 
     def run(self):
         while not self.stopped:
-            try:
-                ## connect to a remote host
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((self.ip, self.port))
-                while not self.stopped:
-                        ## receive a sync signal 
-                        received = s.recv(128)
-                        ## when receiving the right signal, send back the angle
-                        if received.split()[0] == 'request':
-                            s.send(received.split()[1]+' '+str(theta))
-                s.close()
-            except:
-                ## wait some time before trying to reconnect (in case connection fails a lot)
-                time.sleep(0.1)
-                pass
+            received = self.socket.recv(128)
+            #print received
+            ## when receiving the right signal, send back the angle
+            if received.split()[0] == 'request':
+                self.socket.send(received.split()[1]+' '+str(theta))
         
-
+                        
+    
+    # stop the thread and close the socket
     def stop(self):
-        ## stop the thread
         self.stopped = True
+        self.socket.close()
+
+    # return the IP address
+    def get_ip(self):
+        return self.ip
 
 ###############################################################################
 ##########                                                         ############
@@ -135,10 +160,9 @@ class ClientThread(threading.Thread):
 ##########                                                         ############
 ###############################################################################
         
-
-## Start the communication
-client = ClientThread('10.0.7.119',12345)
-client.start()
+### initiate connectionHandler
+connHandler = ConnectionHandler()
+connHandler.start()
 
 ##      Capture frames from the camera     
 vs = PiVideoStream().start()
@@ -152,17 +176,18 @@ try:
         ## crop the image to the needed size
         image = image[300:400, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
         
-        if image.max() > 220:
+        if image.max() > 230:
             x=np.unravel_index(image.argmax(),image.shape)[1]
             theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
         else:
             theta = float('nan')
-        
+        #print theta
         time.sleep(0.02)
 
        
         
 except KeyboardInterrupt:
     vs.stop()
-    client.stop()    
-
+    connHandler.stop()    
+    for conn in connections:
+        conn.stop()
