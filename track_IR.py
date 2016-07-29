@@ -35,7 +35,7 @@ connections = []
 WIDTH = 1296
 HEIGHT = 736
 ## How much of the sides we don't need
-SIDEWIDTH = 220
+SIDEWIDTH = 200
 
 ## variable to hold the angle at which the pen is located
 global theta
