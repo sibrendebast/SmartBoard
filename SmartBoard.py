@@ -98,6 +98,7 @@ class ClientThread(threading.Thread):
                 ## connect to a remote host
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((self.ip, self.port))
+                print 'connected to',self.ip
                 while not self.stopped:
                     if self.request:
                         s.send('request '+str(self.request_num))
@@ -152,7 +153,7 @@ class CoordinateThread(threading.Thread):
         threading.Thread.__init__(self)
         
     def calc_coor(self):
-        #print angles
+        print angles
         #initialize the needed variables
         nb_eq = 0
         A = np.zeros(shape=(4,2))
@@ -224,8 +225,7 @@ def calibrate():
     pygame.init()
     screen = pygame.display.set_mode((0,0),pygame.FULLSCREEN)
     width, height = screen.get_size()
-    pygame.display.set_caption('Calibration')
-    pygame.mouse.set_visible(False)
+    pygame.mouse.set_visible(True)
 
     green = (0,255,0)
     red = (255,0,0)
@@ -286,7 +286,7 @@ def calibrate():
                     raise
             ## compute the average of the collected angles to use them for the calibration
             calibration_angles[i-1] = [sum(data[0])/len(data[0]),sum(data[1])/len(data[1]),sum(data[2])/len(data[2]),sum(data[3])/len(data[3])]
-            print calibration_angles[i-1]
+            #print calibration_angles[i-1]
                 
         
         
@@ -303,7 +303,7 @@ def calibrate():
                       y     - (x3 + x)/math.tan(theta3 + theta) + y3)
 
         delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]=fsolve(equations_theta, (0,50,100))[:]
-        print delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]
+        #print delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]
 
         # phi, calulation for the phi camera
         x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][1]
@@ -317,7 +317,7 @@ def calibrate():
                       dy     - (width - x3 + dx)*math.tan(theta3 + dtheta) + y3)
          
         delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]=fsolve(equations_phi, (0,50,100))[:]
-        print delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]
+        #print delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]
 
         # alpha, calulation for the alpha camera
         x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][2]
@@ -331,7 +331,7 @@ def calibrate():
                       dy     - (x3 + dx)*math.tan(theta3 + dtheta) + y3)
 
         delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]=fsolve(equations_alpha, (0,50,100))[:]
-        print delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]
+        #print delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]
 
         # beta, calulation for the beta camera
         x1, y1, theta1 =   width/(nb_horz_pnts+1), j*height/(nb_vert_pnts+1), calibration_angles[0][3]
@@ -345,7 +345,7 @@ def calibrate():
                       y     - (x3 + x)/math.tan(theta3 + theta) + y3)
 
         delta_angles_list[j-1][3],delta_x_list[j-1][3],delta_y_list[j-1][3]=fsolve(equations_beta, (0,0,0))[:]
-        print delta_angles_list[j-1][3],delta_x_list[j-1][3],delta_y_list[j-1][3]
+        #print delta_angles_list[j-1][3],delta_x_list[j-1][3],delta_y_list[j-1][3]
 
     for i in range(0,4):
         som = 0
