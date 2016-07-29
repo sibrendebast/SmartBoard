@@ -174,7 +174,7 @@ time.sleep(0.5)
 while True:
     image = vs.read()
     ## crop the image to the needed size
-    image = image[350:400, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+    image = image[300:400, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
     
     if image.max() > 230:
         x=np.unravel_index(image.argmax(),image.shape)[1]
