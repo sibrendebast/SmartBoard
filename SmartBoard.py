@@ -40,7 +40,7 @@ global heigth
 global refresh_interval
 
 ## the rate at which the information is updated
-refresh_interval = 0.02
+refresh_interval = 0.01
 
 width =  1920
 height = 1080
@@ -100,8 +100,9 @@ class ClientThread(threading.Thread):
                         #print 'hallo'
                         answer = s.recv(32)
                         #print 'answer',answer
+                        #print self.ip, answer
                         angles[self.angle] = float(answer.split()[1])/180.0*math.pi
-                        print angles[self.angle]
+                        #print angles[self.angle]
                         self.request = False
                 #print 'closing connection'
                 s.close()
@@ -151,6 +152,7 @@ class CoordinateThread(threading.Thread):
         threading.Thread.__init__(self)
         
     def calc_coor(self):
+        print angles
         #initialize the needed variables
         nb_eq = 0
         A = np.zeros(shape=(4,2))
@@ -184,6 +186,7 @@ class CoordinateThread(threading.Thread):
             y[3] = z
             nb_eq += 1
         # if we don't have enough equitations, we can't solve it
+        #print nb_eq
         if nb_eq < 3:
             #set coordinates to nan
             coordinate = (float('nan'),float('nan'))
