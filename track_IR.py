@@ -110,10 +110,10 @@ class ConnectionHandler(threading.Thread):
     def run(self):
         while self.running:
             # listen for incoming connection
-            print 'listening for connections'
+            #print 'listening for connections'
             self.tcpsock.listen(3)
             (sock, (ip, port)) = self.tcpsock.accept()
-            print 'connection from '+str(ip)
+            #print 'connection from '+str(ip)
             # start serverthread to handle incoming connection
             conn = ServerThread(ip, port, sock,)
             conn.start()
@@ -183,7 +183,7 @@ while True:
         theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
     else:
         theta = float('nan')
-    print theta
+    #print theta
     time.sleep(0.03)
 
        
