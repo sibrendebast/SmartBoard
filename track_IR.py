@@ -174,11 +174,12 @@ time.sleep(0.5)
 while True:
     image = vs.read()
     ## crop the image to the needed size
-    image = image[300:400, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+    image = image[300:450, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
     
     max = image.max()
     #print max
     if max > 100:
+        print np.unravel_index(image.argmax(),image.shape)
         x=np.unravel_index(image.argmax(),image.shape)[1]
         theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
     else:
