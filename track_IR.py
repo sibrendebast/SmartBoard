@@ -170,26 +170,26 @@ vs = PiVideoStream().start()
 ## Give the camera some time to start
 time.sleep(0.5)
 
-##try:
-while True:
-    image = vs.read()
-    ## crop the image to the needed size
-    image = image[300:450, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
-    
-    max = image.max()
-    #print max
-    if max > 100:
-        x=np.unravel_index(image.argmax(),image.shape)[1]
-        theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
-    else:
-        theta = float('nan')
-    #print theta
-    time.sleep(0.03)
+try:
+    while True:
+        image = vs.read()
+        ## crop the image to the needed size
+        image = image[300:450, SIDEWIDTH:WIDTH-SIDEWIDTH,0]
+        
+        max = image.max()
+        #print max
+        if max > 100:
+            x=np.unravel_index(image.argmax(),image.shape)[1]
+            theta = 90-(131.1*(float(x)+SIDEWIDTH)/WIDTH-20.642)
+        else:
+            theta = float('nan')
+        #print theta
+        time.sleep(0.03)
 
        
         
-##except KeyboardInterrupt:
-##    vs.stop()
-##    connHandler.stop()    
-##    for conn in connections:
-##        conn.stop()
+except KeyboardInterrupt:
+    vs.stop()
+    connHandler.stop()    
+    for conn in connections:
+        conn.stop()
