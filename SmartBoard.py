@@ -97,7 +97,7 @@ class CoordinateThread:
 
     def __init__(self):
 	pass
-        #threading.Thread.__init__(self)
+        
         
     def calc_coor(self):
         #print angles
@@ -268,7 +268,7 @@ def calibrate():
                       x     - (y2 + y)*math.tan(theta2 + theta) + x2,  \
                       y     - (x3 + x)/math.tan(theta3 + theta) + y3)
 
-        delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]=fsolve(equations_theta, (0,50,100))[:]
+        delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]=fsolve(equations_theta, (0,50,50))[:]
         #print delta_angles_list[j-1][0],delta_x_list[j-1][0],delta_y_list[j-1][0]
 
         # phi, calulation for the phi camera
@@ -282,7 +282,7 @@ def calibrate():
                       dx     - (y2 + dy)/math.tan(theta2 + dtheta) - x2 + width,  \
                       dy     - (width - x3 + dx)*math.tan(theta3 + dtheta) + y3)
          
-        delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]=fsolve(equations_phi, (0,50,100))[:]
+        delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]=fsolve(equations_phi, (0,50,50))[:]
         #print delta_angles_list[j-1][1],delta_x_list[j-1][1],delta_y_list[j-1][1]
 
         # alpha, calulation for the alpha camera
@@ -296,7 +296,7 @@ def calibrate():
                       dx     - (height - y2 + dy)/math.tan(theta2 + dtheta) + x2,  \
                       dy     - (x3 + dx)*math.tan(theta3 + dtheta) + y3)
 
-        delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]=fsolve(equations_alpha, (0,50,100))[:]
+        delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]=fsolve(equations_alpha, (0,50,50))[:]
         #print delta_angles_list[j-1][2],delta_x_list[j-1][2],delta_y_list[j-1][2]
 
         # beta, calulation for the beta camera
