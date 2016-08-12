@@ -101,9 +101,11 @@ class ClientThread(threading.Thread):
                 print 'connected to',self.ip
                 while not self.stopped:
                     if self.request:
-                        s.send('request '+str(self.request_num))
-                        answer = s.recv(32)
-                        angles[self.angle] = float(answer.split()[1])/180.0*math.pi
+			#print "sending"
+                        s.send('request')
+                        answer = s.recv(5)
+			#print len(answer)
+                        angles[self.angle] = float(answer)/18000*math.pi
                         self.request = False
                     time.sleep(0.01)
                 s.close()
@@ -129,15 +131,18 @@ class SyncThread(threading.Thread):
 
     # ask open connections to send the angle with request_number
     def run(self):
+	print "thread started"
         while self.running:
+            #print "running"
             #print self.request_number
             #loop over all open connections
             for con in connections:  
                 #request data from all open connections
+                #print "requesting"
                 con.send_request(self.request_number)
             #sleep for a bit (also wait for al the responses)
             time.sleep(refresh_interval)
-            self.request_number += 1
+            #self.request_number += 1
             
 
     # set flag to stop the thread
@@ -147,13 +152,15 @@ class SyncThread(threading.Thread):
 
 
 ##### Class that calculatues the coordinate of the marker based on the given angles
-class CoordinateThread(threading.Thread):
+class CoordinateThread:
 
     def __init__(self):
-        threading.Thread.__init__(self)
+	pass
+        #threading.Thread.__init__(self)
         
     def calc_coor(self):
-        print angles
+        #print angles
+        start = time.time()
         #initialize the needed variables
         nb_eq = 0
         A = np.zeros(shape=(4,2))
@@ -187,7 +194,6 @@ class CoordinateThread(threading.Thread):
             y[3] = z
             nb_eq += 1
         # if we don't have enough equitations, we can't solve it
-        #print nb_eq
         if nb_eq < 3:
             #set coordinates to nan
             coordinate = (float('nan'),float('nan'))
@@ -195,6 +201,9 @@ class CoordinateThread(threading.Thread):
             # using least squares to solve the system
             C = np.linalg.lstsq(A,y)
             coordinate = (C[0][0][0],C[0][1][0])
+
+	ending = time.time() - start
+	#print ending
         return coordinate
 
 ###############################################################################
@@ -253,11 +262,11 @@ def calibrate():
             ## initialize the array to store the data
             data = [[],[],[],[]] 
             ## wait until we have enough data points
-            while len(data[0]) < 40:
+            while len(data[0]) < 5:
                 try:
                     ## draw a circle with a cross on the screen to calibrate the system, circle becomes smaller until enough data gathered
                     screen.fill((0,0,0))
-                    pygame.draw.circle(screen, white, (i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)), int(25-0.5*len(data[0])))
+                    pygame.draw.circle(screen, white, (i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)), int(25-5*len(data[0])))
                     pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1)-30,j*height/(nb_vert_pnts+1)),(i*width/(nb_horz_pnts+1)+30,j*height/(nb_vert_pnts+1))], 3)
                     pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)-30),(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)+30)], 3)
                     pygame.display.update()
@@ -441,6 +450,14 @@ time.sleep(1)
 
 ### Calibrate the system
 calibrate()
+#delta_angles = [-0.028899012577067559, 0.090678084443816198, 0.028996526565013527, 0.0]
+#delta_x = [8.3858356032125645, 0.55615351598027984, 10.258256485315684, 0.0]
+#delta_y = [43.886289114326928, 41.005562097433753, 42.39385372565534, 0.0]
+
+#delta_angles = [0.026190506544223082, 0.099092657409893634, 0.045113311664663695, 0.0]
+#delta_x = [1.7211368092850223, -21.00893447856901, -12.573247882670147, 0.0]
+#delta_y = [9.8070399982262177, 40.766740182816719, 16.675843016526809, 0.0]
+
 
 ##delta_angles = [-0.01489653883916651, 0.12564259946754294, 0.0718917376054, 0.0]
 ##delta_x = [45.313111630000272, 35.352680874347136, 35.1306102681, 0.0]
@@ -448,7 +465,7 @@ calibrate()
 
 ### initiate the calculation of the coordinates
 coorCalculator = CoordinateThread()
-coorCalculator.start()
+#coorCalculator.start()
 
 ### initialize the mouse controller
 mouse = PyMouse()
@@ -471,24 +488,28 @@ U = zeros((X.shape[0],1))
 
 Y = array([[0],[0]])
 H = array([[1,0,0,0],[0,1,0,0]])
-R = eye(Y.shape[0])*5
+R = eye(Y.shape[0])*1
 
 # flag to keep the state of the mouse
 pressed = False
 
+oldcoordinate = (0,0)
 
 while True:
     try:
         ## ask coordinate
+	oldcoordinate = coordinate
         coordinate = coorCalculator.calc_coor()
+	#print coordinate
         ## check if valid coordinate
         if not math.isnan(coordinate[0]):
-            ## put the coordinate in a numpy array
+            # put the coordinate in a numpy array
             Y = array([[coordinate[0]],[coordinate[1]]])
-            ## apply Kalman filter on coordinates
+            # apply Kalman filter on coordinates
             (X,P) = kf_predict(X,P,A,Q,B,U)
             (X,P,K,IM,IS,LH) = kf_update(X, P, Y, H, R)
-            ## move and press the mouse
+            # move and press the mouse
+	    #mouse.press(coordinate[0],coordinate[1])
             mouse.press((X[:2]).tolist()[0][0],(X[:2]).tolist()[1][0])
             pressed = True
         else:
@@ -497,6 +518,7 @@ while True:
             P = np.matrix(np.eye(4))*1000 # initial uncertainty
             ## release the mouse
             if pressed:
+		#mouse.release(oldcoordinate[0],oldcoordinate[1])
                 mouse.release((X[:2]).tolist()[0][0],(X[:2]).tolist()[1][0])
                 pressed = False
         ## sleep for a while 
