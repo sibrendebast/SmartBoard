@@ -20,6 +20,7 @@ import time
 import threading
 import numpy as np
 import socket
+import math
 from threading import Thread
                   
 ###############################################################################
@@ -137,11 +138,15 @@ class ServerThread(threading.Thread):
 
     def run(self):
         while not self.stopped:
-            received = self.socket.recv(128)
+            received = self.socket.recv(7)
             #print received
             ## when receiving the right signal, send back the angle
-            if received.split()[0] == 'request':
-                self.socket.send(received.split()[1]+' '+str(theta))
+            if received == 'request':
+                #self.socket.send(received.split()[1]+' '+str(theta))
+		if math.isnan(theta):
+		  self.socket.send("nan  ")
+		else:
+		  self.socket.send("%5d" % (theta*100))
         
                         
     
