@@ -60,15 +60,11 @@ connections = []
 ###############################################################################
 
 #####     Client Class to receive the data      #####
-class ClientThread(threading.Thread):
+class ClientThread:
     
 
     def __init__(self,ip,port):
         ## initialize the thread
-        threading.Thread.__init__(self)
-        self.ip = ip
-        self.port = port
-        self.stopped = False
 ##        if ip == 'smartboard1.local':
 ##            self.angle = 1
 ##        elif ip == 'smartboard0.local':
@@ -81,76 +77,21 @@ class ClientThread(threading.Thread):
             self.angle = 0
         elif ip == '10.0.7.197':
             self.angle = 2
-        self.request = False
-        self.request_num = 0
+	self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	self.s.connect((ip, port))
+	print 'connected to ',ip
 
+    def get_angle(self):
+	self.s.send('request')
 
-    # send a request for data and wait for answer
-    def send_request(self,request_num):
-        self.request_num = request_num
-        self.request = True
-        #print self.request_num
-        
-
-    def run(self):
-        while not self.stopped:
-            try:
-                ## connect to a remote host
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((self.ip, self.port))
-                print 'connected to',self.ip
-                while not self.stopped:
-                    if self.request:
-			#print "sending"
-                        s.send('request')
-                        answer = s.recv(5)
-			#print len(answer)
-                        angles[self.angle] = float(answer)/18000*math.pi
-                        self.request = False
-                    time.sleep(0.01)
-                s.close()
-                
-            except:
-                ## wait some time before trying to reconnect (in case connection fails a lot)
-                time.sleep(0.1)
-                pass
-        
+    def read_angle(self):
+	answer = self.s.recv(5)
+	angles[self.angle] = float(answer)/18000*math.pi
 
     def stop(self):
         ## stop the thread
-        self.stopped = True
+	self.s.close()
         
-#####    Class that handles all the synchronization
-class SyncThread(threading.Thread):
-
-    # initilaize syncThread
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.running = True
-        self.request_number = 0
-
-    # ask open connections to send the angle with request_number
-    def run(self):
-	print "thread started"
-        while self.running:
-            #print "running"
-            #print self.request_number
-            #loop over all open connections
-            for con in connections:  
-                #request data from all open connections
-                #print "requesting"
-                con.send_request(self.request_number)
-            #sleep for a bit (also wait for al the responses)
-            time.sleep(refresh_interval)
-            #self.request_number += 1
-            
-
-    # set flag to stop the thread
-    def stop(self):
-        self.running = False
-
-
-
 ##### Class that calculatues the coordinate of the marker based on the given angles
 class CoordinateThread:
 
@@ -160,6 +101,10 @@ class CoordinateThread:
         
     def calc_coor(self):
         #print angles
+	for con in connections:
+            con.get_angle()
+	for con in connections:
+	    con.read_angle()
         start = time.time()
         #initialize the needed variables
         nb_eq = 0
@@ -253,6 +198,10 @@ def calibrate():
             pygame.display.update()
             ## wait until there is a pen detected
             while str(angles[0]) == 'nan' or str(angles[1]) == 'nan' or str(angles[2]) == 'nan':
+		for con in connections:
+		    con.get_angle()
+		for con in connections:
+		    con.read_angle()
                 try:
                     time.sleep(0.05)
                 except:
@@ -262,15 +211,19 @@ def calibrate():
             ## initialize the array to store the data
             data = [[],[],[],[]] 
             ## wait until we have enough data points
-            while len(data[0]) < 5:
+            while len(data[0]) < 10:
                 try:
                     ## draw a circle with a cross on the screen to calibrate the system, circle becomes smaller until enough data gathered
                     screen.fill((0,0,0))
-                    pygame.draw.circle(screen, white, (i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)), int(25-5*len(data[0])))
+                    pygame.draw.circle(screen, white, (i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)), int(25-2.5*len(data[0])))
                     pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1)-30,j*height/(nb_vert_pnts+1)),(i*width/(nb_horz_pnts+1)+30,j*height/(nb_vert_pnts+1))], 3)
                     pygame.draw.lines(screen, red, False, [(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)-30),(i*width/(nb_horz_pnts+1),j*height/(nb_vert_pnts+1)+30)], 3)
                     pygame.display.update()
                     ## gather data if the pen is detected
+		    for con in connections:
+			con.get_angle()
+		    for con in connections:
+			con.read_angle()
                     if (not str(angles[0]) == 'nan' and not str(angles[1]) == 'nan' and not str(angles[2]) == 'nan'):
                         data[0].append(angles[0]) #theta
                         data[1].append(angles[1]) #phi
@@ -284,6 +237,10 @@ def calibrate():
             ## wait until the pen is gone
             while not(str(angles[0]) == 'nan' or str(angles[1]) == 'nan' or str(angles[2]) == 'nan'):
                 try:
+		    for con in connections:
+			con.get_angle()
+		    for con in connections:
+			con.read_angle()
                     ## Turn the cross green to let the user know we can move on
                     screen.fill((0,0,0))
                     pygame.draw.lines(screen, green, False, [(i*width/(nb_horz_pnts+1)-30,j*height/(nb_vert_pnts+1)),(i*width/(nb_horz_pnts+1)+30,j*height/(nb_vert_pnts+1))], 3)
@@ -427,23 +384,19 @@ def gauss_pdf(X,M,S):
 ## Start the communication
 #client0 = ClientThread('smartboard0.local',12345)
 client0 = ClientThread('10.0.7.198',12345)
-client0.start()
 connections.append(client0)
 
 #client1 = ClientThread('smartboard1.local',12345)
 client1 = ClientThread('10.0.7.119',12345)
-client1.start()
 connections.append(client1)
 
 #client2 = ClientThread('smartboard2.local',12345)
 client2 = ClientThread('10.0.7.197',12345)
-client2.start()
 connections.append(client2)
 
-
 ### initiate syncThread
-syncThread = SyncThread()
-syncThread.start()
+#syncThread = SyncThread()
+#syncThread.start()
 
 ### Wait for the data flow to start
 time.sleep(1)
@@ -525,7 +478,7 @@ while True:
         time.sleep(refresh_interval)
     ## if we get a keyboard interrupt, kill all the running threads.
     except KeyboardInterrupt:
-        syncThread.stop()
+        #syncThread.stop()
         for conn in connections:
             conn.stop()
         break
